@@ -156,8 +156,10 @@ func (s *sslClient) Create(ctx context.Context, obj *v1.Ssl) (*v1.Ssl, error) {
 		zap.String("url", s.url),
 		zap.String("id", obj.ID),
 	)
-	if err := s.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !s.cluster.bypassCache {
+		if err := s.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	data, err := json.Marshal(obj)
 	if err != nil {
@@ -190,8 +192,10 @@ func (s *sslClient) Delete(ctx context.Context, obj *v1.Ssl) error {
 		zap.String("cluster", "default"),
 		zap.String("url", s.url),
 	)
-	if err := s.cluster.HasSynced(ctx); err != nil {
-		return err
+	if !s.cluster.bypassCache {
+		if err := s.cluster.HasSynced(ctx); err != nil {
+			return err
+		}
 	}
 	url := s.url + "/" + obj.ID
 	if err := s.cluster.deleteResource(ctx, url); err != nil {
@@ -214,8 +218,10 @@ func (s *sslClient) Update(ctx context.Context, obj *v1.Ssl) (*v1.Ssl, error) {
 		zap.String("cluster", "default"),
 		zap.String("url", s.url),
 	)
-	if err := s.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !s.cluster.bypassCache {
+		if err := s.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	url := s.url + "/" + obj.ID
 	data, err := json.Marshal(obj)

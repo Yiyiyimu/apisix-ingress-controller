@@ -155,8 +155,10 @@ func (u *upstreamClient) Create(ctx context.Context, obj *v1.Upstream) (*v1.Upst
 		zap.String("cluster", "default"),
 	)
 
-	if err := u.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !u.cluster.bypassCache {
+		if err := u.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 
 	body, err := json.Marshal(obj)
@@ -192,8 +194,10 @@ func (u *upstreamClient) Delete(ctx context.Context, obj *v1.Upstream) error {
 		zap.String("url", u.url),
 	)
 
-	if err := u.cluster.HasSynced(ctx); err != nil {
-		return err
+	if !u.cluster.bypassCache {
+		if err := u.cluster.HasSynced(ctx); err != nil {
+			return err
+		}
 	}
 	url := u.url + "/" + obj.ID
 	if err := u.cluster.deleteResource(ctx, url); err != nil {
@@ -218,8 +222,10 @@ func (u *upstreamClient) Update(ctx context.Context, obj *v1.Upstream) (*v1.Upst
 		zap.String("url", u.url),
 	)
 
-	if err := u.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !u.cluster.bypassCache {
+		if err := u.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 
 	body, err := json.Marshal(obj)

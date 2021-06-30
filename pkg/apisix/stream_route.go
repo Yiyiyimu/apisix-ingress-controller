@@ -161,8 +161,10 @@ func (r *streamRouteClient) Create(ctx context.Context, obj *v1.StreamRoute) (*v
 		zap.String("url", r.url),
 	)
 
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	data, err := json.Marshal(obj)
 	if err != nil {
@@ -204,10 +206,12 @@ func (r *streamRouteClient) Delete(ctx context.Context, obj *v1.StreamRoute) err
 		return err
 	}
 	if !r.cluster.bypassCache {
-		if err := r.cluster.cache.DeleteStreamRoute(obj); err != nil {
-			log.Errorf("failed to reflect stream_route delete to cache: %s", err)
-			if err != cache.ErrNotFound {
-				return err
+		if !r.cluster.bypassCache {
+			if err := r.cluster.cache.DeleteStreamRoute(obj); err != nil {
+				log.Errorf("failed to reflect stream_route delete to cache: %s", err)
+				if err != cache.ErrNotFound {
+					return err
+				}
 			}
 		}
 	}
@@ -220,8 +224,10 @@ func (r *streamRouteClient) Update(ctx context.Context, obj *v1.StreamRoute) (*v
 		zap.String("cluster", "default"),
 		zap.String("url", r.url),
 	)
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	body, err := json.Marshal(obj)
 	if err != nil {

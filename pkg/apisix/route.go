@@ -163,8 +163,10 @@ func (r *routeClient) Create(ctx context.Context, obj *v1.Route) (*v1.Route, err
 		zap.String("url", r.url),
 	)
 
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	data, err := json.Marshal(obj)
 	if err != nil {
@@ -199,8 +201,10 @@ func (r *routeClient) Delete(ctx context.Context, obj *v1.Route) error {
 		zap.String("cluster", "default"),
 		zap.String("url", r.url),
 	)
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return err
+		}
 	}
 	url := r.url + "/" + obj.ID
 	if err := r.cluster.deleteResource(ctx, url); err != nil {
@@ -224,8 +228,10 @@ func (r *routeClient) Update(ctx context.Context, obj *v1.Route) (*v1.Route, err
 		zap.String("cluster", "default"),
 		zap.String("url", r.url),
 	)
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	body, err := json.Marshal(obj)
 	if err != nil {

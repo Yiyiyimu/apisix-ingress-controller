@@ -47,20 +47,24 @@ func (r *consumerClient) Get(ctx context.Context, name string) (*v1.Consumer, er
 		zap.String("url", r.url),
 		zap.String("cluster", "default"),
 	)
-	consumer, err := r.cluster.cache.GetConsumer(name)
-	if err == nil {
-		return consumer, nil
-	}
-	if err != cache.ErrNotFound {
-		log.Errorw("failed to find consumer in cache, will try to lookup from APISIX",
-			zap.String("name", name),
-			zap.Error(err),
-		)
-	} else {
-		log.Debugw("consumer not found in cache, will try to lookup from APISIX",
-			zap.String("name", name),
-			zap.Error(err),
-		)
+	var consumer *v1.Consumer
+	if !r.cluster.bypassCache {
+		var err error
+		consumer, err = r.cluster.cache.GetConsumer(name)
+		if err == nil {
+			return consumer, nil
+		}
+		if err != cache.ErrNotFound {
+			log.Errorw("failed to find consumer in cache, will try to lookup from APISIX",
+				zap.String("name", name),
+				zap.Error(err),
+			)
+		} else {
+			log.Debugw("consumer not found in cache, will try to lookup from APISIX",
+				zap.String("name", name),
+				zap.Error(err),
+			)
+		}
 	}
 
 	// TODO Add mutex here to avoid dog-pile effect.
@@ -95,9 +99,11 @@ func (r *consumerClient) Get(ctx context.Context, name string) (*v1.Consumer, er
 		return nil, err
 	}
 
-	if err := r.cluster.cache.InsertConsumer(consumer); err != nil {
-		log.Errorf("failed to reflect consumer create to cache: %s", err)
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.cache.InsertConsumer(consumer); err != nil {
+			log.Errorf("failed to reflect consumer create to cache: %s", err)
+			return nil, err
+		}
 	}
 	return consumer, nil
 }
@@ -143,8 +149,10 @@ func (r *consumerClient) Create(ctx context.Context, obj *v1.Consumer) (*v1.Cons
 		zap.String("url", r.url),
 	)
 
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	data, err := json.Marshal(obj)
 	if err != nil {
@@ -163,9 +171,11 @@ func (r *consumerClient) Create(ctx context.Context, obj *v1.Consumer) (*v1.Cons
 	if err != nil {
 		return nil, err
 	}
-	if err := r.cluster.cache.InsertConsumer(consumer); err != nil {
-		log.Errorf("failed to reflect consumer create to cache: %s", err)
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.cache.InsertConsumer(consumer); err != nil {
+			log.Errorf("failed to reflect consumer create to cache: %s", err)
+			return nil, err
+		}
 	}
 	return consumer, nil
 }
@@ -176,17 +186,21 @@ func (r *consumerClient) Delete(ctx context.Context, obj *v1.Consumer) error {
 		zap.String("cluster", "default"),
 		zap.String("url", r.url),
 	)
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return err
+		}
 	}
 	url := r.url + "/" + obj.Username
 	if err := r.cluster.deleteResource(ctx, url); err != nil {
 		return err
 	}
-	if err := r.cluster.cache.DeleteConsumer(obj); err != nil {
-		log.Errorf("failed to reflect consumer delete to cache: %s", err)
-		if err != cache.ErrNotFound {
-			return err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.cache.DeleteConsumer(obj); err != nil {
+			log.Errorf("failed to reflect consumer delete to cache: %s", err)
+			if err != cache.ErrNotFound {
+				return err
+			}
 		}
 	}
 	return nil
@@ -199,8 +213,10 @@ func (r *consumerClient) Update(ctx context.Context, obj *v1.Consumer) (*v1.Cons
 		zap.String("cluster", "default"),
 		zap.String("url", r.url),
 	)
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	body, err := json.Marshal(obj)
 	if err != nil {
@@ -216,9 +232,11 @@ func (r *consumerClient) Update(ctx context.Context, obj *v1.Consumer) (*v1.Cons
 	if err != nil {
 		return nil, err
 	}
-	if err := r.cluster.cache.InsertConsumer(consumer); err != nil {
-		log.Errorf("failed to reflect consumer update to cache: %s", err)
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.cache.InsertConsumer(consumer); err != nil {
+			log.Errorf("failed to reflect consumer update to cache: %s", err)
+			return nil, err
+		}
 	}
 	return consumer, nil
 }

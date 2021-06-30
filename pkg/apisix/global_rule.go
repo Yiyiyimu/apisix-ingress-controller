@@ -162,8 +162,10 @@ func (r *globalRuleClient) Create(ctx context.Context, obj *v1.GlobalRule) (*v1.
 		zap.String("url", r.url),
 	)
 
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	data, err := json.Marshal(obj)
 	if err != nil {
@@ -197,8 +199,10 @@ func (r *globalRuleClient) Delete(ctx context.Context, obj *v1.GlobalRule) error
 		zap.String("cluster", "default"),
 		zap.String("url", r.url),
 	)
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return err
+		}
 	}
 	url := r.url + "/" + obj.ID
 	if err := r.cluster.deleteResource(ctx, url); err != nil {
@@ -222,8 +226,10 @@ func (r *globalRuleClient) Update(ctx context.Context, obj *v1.GlobalRule) (*v1.
 		zap.String("cluster", "default"),
 		zap.String("url", r.url),
 	)
-	if err := r.cluster.HasSynced(ctx); err != nil {
-		return nil, err
+	if !r.cluster.bypassCache {
+		if err := r.cluster.HasSynced(ctx); err != nil {
+			return nil, err
+		}
 	}
 	body, err := json.Marshal(obj)
 	if err != nil {
